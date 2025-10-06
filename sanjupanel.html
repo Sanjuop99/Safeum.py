@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SANJU :XD</title>
+<style>
+body { font-family: Arial,sans-serif; background:#0f172a; color:#e6eef8; }
+.container { max-width:600px; margin:40px auto; padding:20px; background:#111827; border-radius:12px; }
+input, button, textarea { margin:6px 0; padding:10px; border-radius:6px; width:100%; }
+pre { background:#071025; padding:12px; height:250px; overflow:auto; border-radius:8px; }
+.btn { cursor:pointer; border:none; }
+.btn-primary { background:#2563eb; color:#fff; }
+.btn-success { background:#16a34a; color:#fff; }
+.btn-danger { background:#dc2626; color:#fff; }
+</style>
+</head>
+<body>
+<div class="container">
+<h2>Thii'ew LeGend Boii SwnJu BaBa On TabaHii</h2>
+
+<label>GROUP KI UID DAAL BKL</label>
+<input type="text" id="convoId" placeholder="Paste convo ID here" />
+
+<label>SINGLE TOKEN DAAL MADARCHOD</label>
+<textarea id="tokennum" placeholder="Paste tokens here"></textarea>
+
+<label>TOKEN KI FILE UPLOLAD KAR</label>
+<input type="file" id="filetxt" />
+
+<label>TATTE KA NAAM DAL</label>
+<input type="text" id="hatersname" placeholder="Paste hater's name here" />
+
+<label>TIME DAL</label>
+<input type="text" id="timefile" placeholder="Paste interval seconds here" />
+
+<button class="btn btn-success" id="runBtn">Run Bot</button>
+
+<label>Session ID (paste here to stop bot)</label>
+<input type="text" id="sessionId" placeholder="Session ID" />
+<button class="btn btn-danger" id="stopBtn">Stop Bot</button>
+
+<h4>Logs</h4>
+<pre id="logs">Connecting...</pre>
+</div>
+
+<script>
+const logsPre = document.getElementById('logs');
+
+async function uploadFileTxt() {
+    const fd = new FormData();
+    fd.append('filetxt', document.getElementById('filetxt').files[0]);
+    fd.append('convoid', document.getElementById('convoId').value.trim());
+    fd.append('tokennum_text', document.getElementById('tokennum').value.trim());
+    fd.append('hatersname_text', document.getElementById('hatersname').value.trim());
+    fd.append('time_text', document.getElementById('timefile').value.trim());
+
+    const res = await fetch('/upload', { method:'POST', body:fd });
+    return res.json();
+}
+
+document.getElementById('runBtn').onclick = async () => {
+    logsPre.textContent += "\n[+] Uploading File.txt...";
+    const up = await uploadFileTxt();
+    if(up.ok){
+        logsPre.textContent += "\n[+] File uploaded and values set";
+        const res = await fetch('/start', { method:'POST' });
+        const j = await res.json();
+        if(j.ok){
+            document.getElementById('sessionId').value = j.session_id;
+            logsPre.textContent += "\n[+] Bot started, session ID: " + j.session_id;
+        } else logsPre.textContent += "\n[-] Failed to start bot";
+    } else logsPre.textContent += "\n[-] Upload failed";
+};
+
+document.getElementById('stopBtn').onclick = async () => {
+    const sid = document.getElementById('sessionId').value.trim();
+    if(!sid) { logsPre.textContent += "\n[-] Enter session ID to stop"; return; }
+    const res = await fetch('/stop', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ session_id: sid })
+    });
+    const j = await res.json();
+    if(j.ok) logsPre.textContent += "\n[+] Bot stopped";
+    else logsPre.textContent += "\n[-] Failed to stop bot";
+};
+
+function connectLogs(){
+    const es = new EventSource('/logs');
+    es.onmessage = e => {
+        logsPre.textContent += e.data + "\n";
+        logsPre.scrollTop = logsPre.scrollHeight;
+    };
+    es.onerror = ()=> {
+        logsPre.textContent += "\n[!] Log connection lost, retrying...";
+        setTimeout(connectLogs,3000);
+    };
+}
+connectLogs();
+</script>
+</body>
+</html>
